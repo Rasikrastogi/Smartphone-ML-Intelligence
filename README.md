@@ -46,9 +46,9 @@ pd.read_csv("../data/raw/Phones.csv")
 
 ## Dataset
 
-The raw dataset currently contains 239 smartphone records and hardware,
+The raw dataset currently contains more than 265 smartphone records and hardware,
 benchmark, display, camera, battery, build, launch, and price attributes.
 
-Before publishing the repository, confirm that the dataset's original source
+Before publishing the repository, confirm that the dataset's source
 and licence permit redistribution. Add the source and licence information here
 once verified.
