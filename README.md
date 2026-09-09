@@ -35,6 +35,7 @@ smartphone-ml-intelligence/
 │   ├── 02_exploratory_data_analysis.ipynb
 │   ├── 03_price_prediction.ipynb
 │   └── 04_performance_prediction.ipynb
+│   └── 04_performance_prediction.ipynb
 │
 ├── .gitignore
 ├── README.md
@@ -138,11 +139,23 @@ Used grouped cross-validation with processor identity as the grouping variable t
 
 This provides a stricter evaluation than standard cross-validation and helps distinguish processor memorization from broader hardware-performance learning.
 
-## Planned Modules
-
 ### 5. Smartphone Market Segmentation
 
-Identify meaningful groups of smartphones based on pricing, performance, display, battery, camera, and hardware characteristics.
+Performed unsupervised market segmentation using standardized smartphone characteristics across price, performance, display, battery, charging, camera, and form factor.
+
+Key steps include:
+
+- K-Means clustering across an 8-dimensional numerical feature space
+- evaluation of multiple cluster counts using inertia, Silhouette Score, Davies-Bouldin Score, and Calinski-Harabasz Score
+- selection of a three-segment solution based on clustering quality and interpretability
+- numeric profiling of each cluster
+- inspection of representative smartphones
+- brand distribution analysis across discovered segments
+- sale-category distribution analysis across discovered segments
+
+The resulting segments capture different market-positioning patterns such as premium compact devices, budget battery-focused devices, and performance-oriented feature-rich devices.
+
+## Planned Modules
 
 ### 6. Specification-Based Value Analysis
 
@@ -186,10 +199,10 @@ Completed:
 - Exploratory data analysis
 - Price prediction
 - Performance prediction
+- Market segmentation
 
 In progress / planned:
 
-- Market segmentation
 - Specification-based value analysis
 - Explainable recommendation system
 
