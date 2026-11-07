@@ -1,94 +1,73 @@
 # Smartphone ML Intelligence
 
-An end-to-end smartphone market intelligence and machine learning project built around a custom-curated smartphone dataset.
+An end-to-end machine learning project on the Indian smartphone market, built on a dataset I created myself.
 
-The project combines technical product research, data cleaning, SQL-based filtering, exploratory analysis, supervised learning, unsupervised market segmentation, and specification-based value analysis. The next stages extend this work into a preference-aware recommendation engine and a natural-language end-user application.
+The project goes from data collection to a working application:
 
-## Project Objectives
+- a custom-curated dataset of 289 smartphones
+- data cleaning and exploratory analysis
+- price and performance prediction with leakage-aware validation
+- market segmentation and a specification-based value score
+- a rule-based recommendation engine
+- a natural-language assistant that runs on a local language model (Ollama)
+- a Streamlit app with a recommender, a price predictor, and a performance predictor
 
-The project is designed to answer practical smartphone-market questions such as:
+## Highlights
 
-- Which specifications are most strongly associated with smartphone pricing?
-- How accurately can smartphone price and benchmark performance be estimated from technical specifications?
-- How well do models generalize to previously unseen processor families?
-- What natural market segments emerge from smartphone specifications?
-- Which smartphones appear to offer stronger specification-based value relative to their market price?
-- How can users express requirements in natural language and receive ranked smartphone recommendations?
+- **Self-built dataset.** All 289 phones and 43 attributes were researched and recorded by hand from multiple sources, rather than taken from a ready-made dataset.
+- **Leakage-aware modelling.** All preprocessing happens inside scikit-learn pipelines, models are compared with repeated cross-validation, and performance prediction is also tested on processors the model has never seen.
+- **Recommendations without hand-picked weights.** Phones are shortlisted on real specification values and then ranked by a value score learned from out-of-fold price predictions.
+- **A language model with a narrow, checked job.** Keyword extraction against a vocabulary built from the dataset handles prices, brands, and requirements. A small local model (`gemma3:1b`) is consulted only for paraphrases, and must quote the words its answer is based on.
+- **Runs on modest hardware.** The full pipeline, including the language model, runs on a laptop with a 4 GB GPU (GTX 1650).
+- **Honest outputs.** Every recommendation shows how the request was understood, impossible requests return no phones together with the reason, and every prediction comes with its typical error.
 
-## Data
+## Dataset
 
-The dataset was independently curated through multi-source smartphone research rather than taken as a ready-made machine learning dataset.
+| Property | Value |
+|---|---|
+| Smartphones | 289 (161 currently available) |
+| Brands | 15: Apple, Google, IQOO, Infinix, Lava, Motorola, Nothing, OnePlus, Oppo, POCO, Realme, Samsung, Tecno, Vivo, Xiaomi |
+| Attributes | 43 |
+| Market | India (prices in INR) |
+| Launch dates | July 2022 to October 2026, mostly 2024–2026 |
 
-It contains smartphone attributes covering areas such as:
+The attributes cover:
 
-- pricing and market availability
-- processors and fabrication process
-- RAM and storage technologies
-- AnTuTu and Geekbench benchmarks
-- display characteristics
-- battery capacity and charging speed
-- camera specifications
-- physical dimensions and form factor
-- launch information
-- sales / market-position categories
+- pricing, sales channel, and current availability
+- processor, fabrication process, RAM and storage technology
+- AnTuTu and Geekbench benchmark scores
+- display type, size, refresh rate, peak brightness, pixel density, protection
+- battery capacity, charging speed, wireless charging
+- camera count, resolutions, ultrawide and telephoto lenses, video capability
+- dimensions, weight, materials, IP rating, speakers
+- launch date
 
-The dataset is continuously maintained as smartphone availability and market information change.
+Each phone is recorded with the price of its base (minimum RAM and storage) variant.
 
-## SQL-Based Availability Filtering
-
-The analytical notebooks use **DuckDB** as a lightweight SQL layer on top of the processed smartphone dataset.
-
-Before analysis or modelling, the dataset is registered as a DuckDB table and filtered so that experiments operate only on smartphones that are currently available:
-
-```python
-from pathlib import Path
-
-import duckdb
-import pandas as pd
-
-DATA_PATH = Path("../data/processed/phones_clean.csv")
-
-data = pd.read_csv(
-    DATA_PATH,
-    parse_dates=["launch_date"]
-)
-
-con = duckdb.connect()
-con.register("phones", data)
-
-query = """
-SELECT *
-FROM phones
-WHERE avaibility = 1
-"""
-
-phones = con.execute(query).df()
-```
-
-This makes the analytical workflow more representative of the current smartphone market and also provides a SQL-based data-access layer that can later support the natural-language recommendation application.
+The raw data is kept unchanged in `data/raw/Phones.csv`; all cleaning produces separate processed files.
 
 ## Project Workflow
 
 ```text
-Custom Smartphone Research & Dataset Creation
+Custom smartphone research and dataset creation
                     ↓
-        Data Audit and Cleaning
+01  Data audit and cleaning
                     ↓
-     DuckDB Availability Filtering
+02  Exploratory data analysis
                     ↓
-      Exploratory Data Analysis
+03  Price prediction            04  Performance prediction
                     ↓
-          Price Prediction
+05  Market segmentation
                     ↓
-       Performance Prediction
+06  Specification-based value analysis
                     ↓
-        Market Segmentation
+07  Rule-based recommendation engine
                     ↓
- Specification-Based Value Analysis
+08  Natural-language recommendations (keywords + Ollama)
                     ↓
- Preference-Aware Recommendation Engine
+09  Final price and performance models
                     ↓
- Natural Language → SQL → Recommendation App
+Streamlit app: Smartphone Finder · Price Predictor · Performance Predictor
 ```
 
 ## Repository Structure
@@ -99,187 +78,243 @@ smartphone-ml-intelligence/
 ├── data/
 │   ├── raw/
 │   │   └── Phones.csv
-│   │
-│   └── processed/
+│   └── processed/                       # generated by the notebooks
 │       ├── phones_clean.csv
 │       └── phones_with_value_scores.csv
 │
 ├── notebooks/
 │   ├── archive/
 │   │   └── 00_original_phones_analysis.ipynb
-│   │
 │   ├── 01_data_audit_and_cleaning.ipynb
 │   ├── 02_exploratory_data_analysis.ipynb
 │   ├── 03_price_prediction.ipynb
 │   ├── 04_performance_prediction.ipynb
 │   ├── 05_market_segmentation.ipynb
-│   └── 06_value_analysis.ipynb
+│   ├── 06_value_analysis.ipynb
+│   ├── 07_recommendation_engine.ipynb
+│   ├── 08_natural_language_recommendations.ipynb
+│   └── 09_final_models.ipynb
+│
+├── app/
+│   ├── app.py                           # Streamlit entry point and navigation
+│   ├── finder.py                        # Smartphone Finder page
+│   ├── price_predictor.py               # Price Predictor page
+│   ├── performance_predictor.py         # Performance Predictor page
+│   ├── form_helpers.py                  # shared input widgets
+│   ├── smartphone_assistant.py          # recommendation logic of notebook 08
+│   └── prediction_models.py             # input handling for the prediction models
+│
+├── models/                              # generated by notebook 09 (not committed)
 │
 ├── .gitignore
 ├── README.md
 └── requirements.txt
 ```
 
-## Completed Work
+## Notebooks
 
-### 1. Data Audit and Cleaning
+### 01 — Data Audit and Cleaning
 
-Built a reproducible cleaning workflow for the custom smartphone dataset.
+Schema and data-type inspection, duplicate and consistency checks, standardisation of column names and values, date parsing, Boolean conversion, and derived attributes (camera-presence flags, launch year, phone age). The result is saved as `data/processed/phones_clean.csv`.
 
-Key work includes:
+### 02 — Exploratory Data Analysis
 
-- schema and datatype inspection
-- duplicate and logical consistency checks
-- standardization of column names and values
-- date parsing
-- boolean and categorical cleanup
-- derived smartphone attributes
-- preservation of raw data separately from processed analytical data
+The market across brands, prices, processors, benchmarks, battery and charging, displays, cameras, physical characteristics, correlations, and outliers.
 
-The processed dataset is stored as `data/processed/phones_clean.csv`.
+### 03 — Price Prediction
 
-### 2. Exploratory Data Analysis
+Regression models estimating price from specifications: baseline, linear, Ridge, Random Forest, Extra Trees, Gradient Boosting, and log-price Gradient Boosting, compared with repeated 5-fold cross-validation. A second experiment adds benchmark scores, which improve accuracy only marginally, so the specification-only model is kept.
 
-Explored the smartphone market across brands, pricing, processors, benchmark performance, battery and charging, displays, cameras, physical characteristics, correlations, and outliers.
+### 04 — Performance Prediction
 
-The analysis focuses on understanding relationships in the dataset before applying predictive models.
+Models estimating the AnTuTu score from hardware:
 
-### 3. Smartphone Price Prediction
+- hardware-only and Geekbench-assisted prediction
+- processor-grouped validation, testing processors the model has never seen
+- the contribution of fabrication process and memory technologies
+- processor-only prediction
+- clustering of processors by benchmark performance, and a similar-processor lookup
 
-Developed leakage-aware machine learning pipelines to estimate smartphone price from technical specifications.
+### 05 — Market Segmentation
 
-The notebook compares multiple regression approaches, including baseline regression, regularized linear models, Random Forest, Extra Trees, and Gradient Boosting. Repeated cross-validation is used to compare models more reliably.
+Unsupervised segmentation on standardised price, performance, display, battery, charging, camera, and size characteristics. Cluster counts are compared with inertia, Silhouette, Davies-Bouldin, and Calinski-Harabasz scores, and the segments are interpreted through profiles, representative phones, and brand distributions.
 
-A second experiment evaluates whether benchmark scores provide additional pricing information beyond the smartphone specifications themselves.
+### 06 — Specification-Based Value Analysis
 
-### 4. Smartphone Performance Prediction
+Repeated out-of-fold price predictions give each phone a specification-based expected price from a model that never saw that phone. From this the notebook derives the value gap, brand and price-range patterns, and a 0–100 value score.
 
-Modelled AnTuTu performance from smartphone hardware characteristics.
+The value gap is not treated as proof that a phone is overpriced or underpriced, because software support, ecosystem, service, design, and resale value are not in the dataset.
 
-The experiments investigate:
+### 07 — Rule-Based Recommendation Engine
 
-- hardware-only performance prediction
-- benchmark-assisted prediction using Geekbench scores
-- processor-grouped validation for unseen processor identities
-- contribution of fabrication process and memory / storage technologies
-- processor-only prediction versus broader hardware information
+Recommendations for a single feature, such as "best battery under Rs. 40,000":
 
-Processor-grouped validation is used to test whether model performance depends heavily on seeing the same processor families during training.
+1. filter available phones by budget (and optionally brand)
+2. shortlist the top 15% for the requested feature, keeping ties together
+3. return the shortlisted phones with the highest value score
 
-### 5. Smartphone Market Segmentation
+Each feature maps to real columns. Camera, for example, is ranked by the number of useful cameras first, then by whether the sensor is documented. No hand-picked weights are used.
 
-Performed unsupervised market segmentation using standardized numerical smartphone characteristics across price, performance, display refresh rate, battery capacity, charging speed, main-camera resolution, useful camera count, and device size.
+### 08 — Natural-Language Recommendations
 
-Multiple cluster counts were evaluated using inertia, Silhouette Score, Davies-Bouldin Score, and Calinski-Harabasz Score.
+Turns sentences such as *"a long lasting phone that survives rain and isn't a Xiaomi, around 35k"* into recommendations. This is described in detail [below](#natural-language-assistant).
 
-The final segmentation was interpreted using cluster profiles, representative smartphones, brand distributions, and sales-category distributions.
+### 09 — Final Models
 
-This allows the project to identify naturally occurring smartphone market groups rather than relying only on manually defined price brackets.
+Selects the best models from notebooks 03 and 04, re-checks their cross-validated errors, trains them on all phones, and saves them with the metadata the app needs:
 
-### 6. Specification-Based Value Analysis
+- typical values for skipped inputs
+- dropdown options
+- processor details
+- camera patterns
 
-Extended the price-prediction work into a market-value analysis.
+## Key Results
 
-For every smartphone, repeated out-of-fold predictions are used to estimate a specification-based expected price without evaluating a phone using a model that was trained on that same phone.
+Repeated 5-fold cross-validation (5 repeats) unless stated otherwise.
 
-The analysis derives:
+| Task | Model | MAE | R² |
+|---|---|---|---|
+| Price | Gradient Boosting (specifications) | Rs. 6,493 | 0.919 |
+| AnTuTu | Extra Trees (hardware) | 150,236 | 0.921 |
+| AnTuTu | Extra Trees (hardware + Geekbench) | 107,703 | 0.964 |
+| AnTuTu, unseen processors | Extra Trees (hardware), processor-grouped | 280,857 | 0.775 |
 
-- expected specification-based price
-- absolute value gap
-- percentage value gap
-- brand-level value patterns
-- value patterns across price ranges
-- a relative 0–100 value score
+Natural-language understanding, strict field-by-field evaluation:
 
-The value gap is interpreted as the difference between the model's specification-based price estimate and the actual market price.
+| Approach | Original test set (16) | Held-out test set (14) |
+|---|---|---|
+| `gemma3:1b` translating whole sentences | 4 (lenient scoring) | — |
+| Keyword extraction only | 16 | 13 |
+| Keyword extraction + `gemma3:1b` for paraphrases | 16 | 14 |
 
-It is **not** treated as an objective measure of whether a smartphone is overpriced or underpriced, because factors such as software support, ecosystem, after-sales service, brand positioning, design, and resale value may not be fully represented in the dataset.
+The held-out sentences were written before the keyword extractor and were not used to tune it. The original-set scores are optimistic, because the keyword lists were written while those sentences were known.
 
-The resulting value score is saved for use by the recommendation engine.
+## Recommendation Rules
 
-## Planned Work
+| Rule | Behaviour |
+|---|---|
+| "Under Rs. X" | Searches 0.8X to X. Phones up to 1.1X are also considered and tagged *"Could be available at Rs. X with some discounts"* |
+| "Between X and Y" | Searches X to Y |
+| "Around X" | Searches 0.9X to 1.1X |
+| Shortlist | Top 15% for the requested feature, but at least 5 phones (or all, if fewer match) |
+| Result | At most 5 phones, ordered by value score |
+| No match | No phones; the reason is explained by removing one condition at a time |
 
-### 7. Preference-Aware Recommendation Engine
+Features and requirements that can be requested:
 
-Build a recommendation layer that separates:
+| Request | How it is handled |
+|---|---|
+| Battery, performance, charging, brightness, refresh rate, slimness, lightness, compactness, zoom | Ranked by the matching specification column |
+| Camera | Useful camera count, then documented sensor information |
+| Multimedia | Largest screen, then pixel density, then brightness (missing values filled with the display-type mean); stereo speakers required |
+| Brand value | Brand target encoding: mean price of the brand's available phones |
+| Good sound | Stereo speakers |
+| Waterproof | IP68 or IP69 |
+| Good build | Recorded screen protection, no plastic frame, no plastic back |
+| Brands, processor type, display type | Filters, including exclusions such as "not Samsung" |
 
-- **hard constraints**, such as maximum budget or required brand
-- **soft preferences**, such as performance, camera quality, battery, charging speed, thinness, or value
-
-Eligible smartphones will first be filtered and then ranked using normalized feature scores, specification-based value signals, similarity, and user-derived preference weights.
-
-### 8. Natural-Language Smartphone Recommendation Application
-
-The final application will allow users to express requirements naturally, for example:
-
-> "I want the slimmest phones with good performance under Rs. 40,000."
-
-The planned flow is:
+## Natural-Language Assistant
 
 ```text
-Natural-language request
-        ↓
-Structured intent extraction
-        ↓
-Validated SQL generation
-        ↓
-DuckDB candidate filtering
-        ↓
-Preference-aware ranking
-        ↓
-Top smartphone recommendations
-        ↓
-Human-readable explanation and trade-offs
+User sentence
+      ↓
+Keyword extraction        prices, brands and exclusions, processor, display,
+      ↓                   requirements, features (vocabulary built from the dataset)
+Language model (Ollama)   only if no feature word was found; must quote the words
+      ↓                   it relied on, and the quote is checked
+Validation (Pydantic)     only values that exist in the dataset can pass
+      ↓
+Rules (DuckDB + Python)   filtering, shortlist, best value
+      ↓
+Recommendations with the interpretation, or "no match" with the reason
 ```
 
-Part 8 will also investigate more meaningful representations for selected categorical attributes.
+A first version let the language model translate whole sentences. It frequently copied values from the examples in its prompt and missed literal details such as brands and "between", so its role was reduced to the one thing keywords cannot do: reading paraphrases such as *"a phone for PUBG"* (performance). The language model never selects or ranks phones.
 
-For genuinely ordered categorical variables, ordinal modelling can be used to derive continuous market-position or technology-position signals instead of assigning arbitrary equally spaced integer values.
+## Streamlit App
 
-Nominal features will remain categorical or use an appropriate non-ordinal representation.
+| Page | Purpose |
+|---|---|
+| Smartphone Finder | Recommendations from a sentence |
+| Price Predictor | Estimated price from specifications |
+| Performance Predictor | Estimated AnTuTu score from processor and memory |
+
+The predictor pages are designed so that users do not have to enter every feature:
+
+- **Every input can be skipped.** Empty numbers use the median and empty categories the mode. When a processor is chosen, memory type, screen size, and thickness use the values typical for that processor. The page lists every value that was filled in.
+- **Dropdowns instead of typing.** Every category is a dropdown with readable labels, and the processor list is searchable. Choosing a processor fills in its type and fabrication size.
+- **Camera questions adapt to the number of useful cameras:**
+
+| Useful cameras | Asked |
+|---|---|
+| 1 | main camera |
+| 2 | main camera; ultrawide megapixels, or telephoto zoom if there is no ultrawide |
+| 3 or 4 | main camera, ultrawide, telephoto zoom (3.5 means `Telephoto - 3.5x`) |
+
+- **Geekbench is optional.** The Performance Predictor switches to the more accurate Geekbench model when both scores are entered.
+- **Every estimate shows a likely range** based on the model's cross-validated error. For an unknown processor, the larger processor-grouped error is shown.
+
+## Getting Started
+
+```bash
+git clone https://github.com/Rasikrastogi/Smartphone-ML-Intelligence.git
+cd Smartphone-ML-Intelligence
+pip install -r requirements.txt
+```
+
+Run the notebooks in order (`01` → `09`). Notebook 01 creates the cleaned dataset, notebook 06 the value scores, and notebook 09 the saved models.
+
+For the language-model step of notebook 08 and the Smartphone Finder, install [Ollama](https://ollama.com) and download the model:
+
+```bash
+ollama pull gemma3:1b
+```
+
+Everything else also works without Ollama, using keywords only.
+
+Start the app from the project root:
+
+```bash
+streamlit run app/app.py
+```
 
 ## Technologies
 
-- Python
-- SQL
-- DuckDB
-- Pandas
-- NumPy
-- Scikit-learn
-- Matplotlib
-- Seaborn
-- Jupyter Notebook
-- Git
-- GitHub
-
-Planned application components may additionally include Streamlit and an LLM-based structured intent layer.
+- Python, SQL
+- pandas, NumPy, DuckDB
+- scikit-learn, joblib
+- Matplotlib, Seaborn
+- Pydantic
+- Ollama (`gemma3:1b`)
+- Streamlit
+- Jupyter Notebook, Git, GitHub
 
 ## Methodological Principles
 
-The project follows several principles throughout the notebooks:
+- Raw data is preserved; processed datasets are generated separately.
+- All preprocessing happens inside pipelines, so cross-validation is free of leakage.
+- Models are compared with repeated cross-validation, and generalisation is tested beyond headline metrics (processor-grouped validation).
+- Market-facing analyses (segmentation, value, recommendations) use currently available phones; prediction models use all phones.
+- Model outputs are treated as estimates, not market truth.
+- Hard constraints are kept separate from ranking preferences.
+- Language-model output is validated against the dataset vocabulary; no model-generated SQL is executed.
 
-- preserve raw data and generate processed analytical datasets separately
-- filter current smartphone availability through SQL before market analysis and modelling
-- avoid target leakage
-- use cross-validation rather than relying on a single train/test split
-- evaluate model generalization beyond headline metrics
-- treat model predictions as analytical estimates rather than objective market truth
-- keep recommendation constraints separate from ranking preferences
-- use validated SQL generation rather than executing unrestricted model-generated SQL
+## Limitations
 
-## Current Status
+1. **Limited camera features.** Sensor size, aperture, and image processing are not recorded, so camera rankings rely on hardware proxies (number of useful cameras, documented sensor, telephoto zoom).
+2. **Foldables and tablets are not included.**
+3. **Time span and sample size.** The phones were launched between mid-2022 and 2026, most of them in 2024–2026. With 289 phones (161 available), estimates for rare or very expensive phones are less reliable. The prediction models are trained on all phones, while segmentation, value analysis, and recommendations use the currently available phones.
+4. **Missing attributes.** NFC, USB port type, headphone jack, brand customer service, and software update policy (how long a phone receives updates, and how future-proof it is) are not in the dataset.
+5. **Concept drift.** Prices, availability, and typical specifications change quickly, so models and recommendations need regular retraining on updated data.
+6. **Base variants only.** Each phone is recorded with the price of its minimum RAM and storage variant; other variants are not available.
+7. **Discount adjustments are approximate.** Budgets are widened (for example, phones up to 10% above the budget are shown with a discount note) to account for offers, but actual discounts vary and are not in the data.
+8. **Indian market only.** Prices, availability, and the phone selection reflect the Indian market.
 
-Completed:
+## Future Scope
 
-- Data audit and cleaning
-- Exploratory data analysis
-- Price prediction
-- Performance prediction
-- Market segmentation
-- Specification-based value analysis
-- DuckDB-based availability filtering across the analytical workflow
+1. **Availability and price-tracking agents.** Agents that track phone availability and current prices, including all RAM and storage variants, and could be extended beyond India.
+2. **Review-analysis agents.** Agents that collect user and expert reviews and turn them into a score. This would capture what specifications miss, for example a phone with excellent hardware but poor software optimisation.
 
-Next:
+## Author
 
-- Preference-aware recommendation engine
-- Natural-language smartphone recommendation application
+Rasik Rastogi
